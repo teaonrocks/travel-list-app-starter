@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 // Initial packing items
 const initialItems = [
 	{ id: 1, description: "Shirt", quantity: 5, packed: false },
@@ -24,6 +25,7 @@ function Form({ handleAddItem }) {
 		handleAddItem(item);
 		setDescription("");
 		setQuantity(1);
+		console.log(item);
 	}
 
 	return (
@@ -49,24 +51,50 @@ function Form({ handleAddItem }) {
 	);
 }
 
-function Item({ description, quantity, packed }) {
+function Item({
+	description,
+	quantity,
+	packed,
+	id,
+	handleDeleteItem,
+	handleUpdateItem,
+}) {
+	const [isChecked, setIsChecked] = useState(packed);
 	return (
-		<li style={{ textDecoration: packed && "line-through" }}>
-			{description} - {quantity}
-		</li>
+		<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+			<input
+				type="checkbox"
+				onChange={(e) => {
+					setIsChecked(e.target.checked);
+					handleUpdateItem(id, {
+						id,
+						description,
+						quantity,
+						packed: e.target.checked,
+					});
+				}}
+			/>
+			<li style={{ textDecoration: packed && "line-through" }}>
+				{description} - {quantity}
+			</li>
+			<X onClick={() => handleDeleteItem(id)} />
+		</div>
 	);
 }
 
-function PackingList({ items }) {
+function PackingList({ items, handleDeleteItem, handleUpdateItem }) {
 	return (
 		<div className="list">
 			<ul>
 				{items.map((item) => (
 					<Item
 						key={item.id}
+						id={item.id}
 						description={item.description}
 						quantity={item.quantity}
 						packed={item.packed}
+						handleDeleteItem={handleDeleteItem}
+						handleUpdateItem={handleUpdateItem}
 					></Item>
 				))}
 			</ul>
@@ -74,10 +102,24 @@ function PackingList({ items }) {
 	);
 }
 
-function Stats() {
+function Stats({ items }) {
+	const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+	const packedItems = items
+		.filter((item) => item.packed)
+		.reduce((sum, item) => sum + item.quantity, 0);
+	const percentage =
+		totalItems === 0 ? 0 : Math.round((packedItems / totalItems) * 100);
+
 	return (
 		<footer className="stats">
-			<em>You have X items in the list. You already packed Y (Z%).</em>
+			{percentage == 100 ? (
+				<em>you have everything packed!</em>
+			) : (
+				<em>
+					You have {totalItems} items in the list. You already packed{" "}
+					{packedItems} ({percentage}%).
+				</em>
+			)}
 		</footer>
 	);
 }
@@ -87,12 +129,24 @@ function App() {
 	function handleAddItem(item) {
 		setItems((prev) => [...prev, item]);
 	}
+	function handleDeleteItem(id) {
+		setItems((items) => items.filter((item) => item.id !== id));
+	}
+	function handleUpdateItem(id, updatedItem) {
+		setItems((items) =>
+			items.map((item) => (item.id === id ? updatedItem : item))
+		);
+	}
 	return (
 		<div className="app">
 			<Logo />
 			<Form handleAddItem={handleAddItem} />
-			<PackingList items={items} />
-			<Stats />
+			<PackingList
+				items={items}
+				handleDeleteItem={handleDeleteItem}
+				handleUpdateItem={handleUpdateItem}
+			/>
+			<Stats items={items} />
 		</div>
 	);
 }
